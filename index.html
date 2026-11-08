@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Estimador de precios para modista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f3f7f8;
+  --surface: #ffffff;
+  --ink: #0e2a3b;
+  --muted: #55707f;
+  --line: #d5e1e6;
+  --accent: #0f8f84;
+  --accent-ink: #ffffff;
+  --panel: #0e2a3b;
+  --panel-ink: #eaf6f5;
+  --panel-muted: #9fc0c6;
+  --bar-mat: #5b8def;
+  --bar-lab: #1fb5a5;
+  --bar-ind: #9aa9b4;
+  --bar-pro: #e0a43a;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #09171f; --surface: #102431; --ink: #e6f1f3; --muted: #8fabb5; --line: #1f3846;
+    --accent: #2cc7b8; --accent-ink: #06201d; --panel: #0b3b44; --panel-ink: #eaf6f5; --panel-muted: #9fd0d3;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #09171f; --surface: #102431; --ink: #e6f1f3; --muted: #8fabb5; --line: #1f3846;
+  --accent: #2cc7b8; --accent-ink: #06201d; --panel: #0b3b44; --panel-ink: #eaf6f5; --panel-muted: #9fd0d3;
+  color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px; line-height: 1.45;
+}
+h1, h2, .price { font-family: "Sora", "Segoe UI", system-ui, sans-serif; }
+header { max-width: 1080px; margin: 0 auto; padding: 28px 20px 8px; }
+h1 { font-size: 1.6rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+header p { margin: 0; color: var(--muted); max-width: 60ch; }
+main { max-width: 1080px; margin: 0 auto; padding: 16px 20px 120px; display: grid; gap: 20px; grid-template-columns: 1fr; }
+@media (min-width: 900px) { main { grid-template-columns: 1.25fr 1fr; align-items: start; padding-bottom: 48px; } .result { position: sticky; top: 16px; } }
+section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+h2 { font-size: 1.05rem; margin: 0 0 12px; }
+label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 4px; }
+input, select {
+  width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; min-height: 42px;
+}
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 520px) { .grid3 { grid-template-columns: 1fr; } }
+.mat-row { display: grid; grid-template-columns: 1fr 70px 90px 36px; gap: 8px; margin-bottom: 8px; align-items: center; }
+.mat-head { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
+.mat-row button { min-height: 42px; border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; font-size: 1.1rem; }
+.btn { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 8px; padding: 9px 14px; cursor: pointer; font: inherit; font-weight: 600; min-height: 42px; }
+.hint { font-size: 0.85rem; color: var(--muted); margin: 8px 0 0; }
+.check { display: flex; gap: 10px; align-items: center; margin-top: 12px; color: var(--ink); font-size: 0.95rem; }
+.check input { width: 20px; min-height: 20px; height: 20px; }
+.result .panel { background: var(--panel); color: var(--panel-ink); border-radius: 14px; padding: 22px; }
+.panel .lbl { color: var(--panel-muted); font-size: 0.9rem; }
+.price { font-size: 2.6rem; font-weight: 700; line-height: 1.1; margin: 4px 0 2px; letter-spacing: -0.02em; }
+.sub { color: var(--panel-muted); font-size: 0.95rem; }
+.stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 18px 0 12px; background: rgba(255,255,255,0.12); }
+.stack span { display: block; height: 100%; transition: width 0.25s ease; }
+.rows { margin: 0; padding: 0; list-style: none; }
+.rows li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.12); font-size: 0.95rem; }
+.rows li:last-child { border-bottom: 0; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+.rows .tot { font-weight: 600; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.kpi { background: rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px; }
+.kpi b { display: block; font-family: "Sora", sans-serif; font-size: 1.05rem; margin-top: 2px; }
+.warn { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: rgba(224,164,58,0.18); color: #f6d894; font-size: 0.9rem; display: none; }
+.warn.on { display: block; }
+.mobilebar { display: none; }
+@media (max-width: 899px) {
+  .mobilebar {
+    display: flex; justify-content: space-between; align-items: center;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: var(--panel); color: var(--panel-ink);
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .mobilebar b { font-family: "Sora", sans-serif; font-size: 1.4rem; }
+}
+details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+.theme { float: right; }
+@media (prefers-reduced-motion: reduce) { .stack span { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Estimador de precios para modista</h1>
+  <p>Calcula cuánto cobrar por prenda o atuendo a partir de materiales, tiempo, gastos y la ganancia que quieres obtener. Todos los importes están en pesos mexicanos.</p>
+</header>
+
+<main>
+  <div class="inputs">
+
+    <section class="card">
+      <h2>Prenda</h2>
+      <div class="grid2">
+        <div>
+          <label for="preset">Tipo de prenda</label>
+          <select id="preset"></select>
+        </div>
+        <div>
+          <label for="complex">Complejidad</label>
+          <select id="complex">
+            <option value="1">Básica (líneas simples)</option>
+            <option value="1.25" selected>Media (forro, pinzas, cierre)</option>
+            <option value="1.5">Alta (estructura, bordados)</option>
+            <option value="2">Alta costura (a medida, detalle fino)</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint">Al elegir el tipo se sugieren horas por etapa. Puedes ajustarlas con tu propia experiencia.</p>
+    </section>
+
+    <section class="card">
+      <h2>Tiempo de trabajo</h2>
+      <div class="grid3">
+        <div><label for="h1">Patrón y corte (h)</label><input id="h1" type="number" min="0" step="0.25" value="1"></div>
+        <div><label for="h2">Confección (h)</label><input id="h2" type="number" min="0" step="0.25" value="3"></div>
+        <div><label for="h3">Pruebas y acabados (h)</label><input id="h3" type="number" min="0" step="0.25" value="1.5"></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div><label for="rate">Tarifa por hora ($)</label><input id="rate" type="number" min="0" step="5" value="80"></div>
+        <div><label for="fit">Pruebas con la clienta (extra, $)</label><input id="fit" type="number" min="0" step="10" value="0"></div>
+      </div>
+      <p class="hint">Tu tarifa por hora debe cubrir lo que quieres ganar por tu trabajo, sin contar utilidad del negocio.</p>
+    </section>
+
+    <section class="card">
+      <h2>Materiales</h2>
+      <div class="mat-head mat-row" style="margin-bottom:4px"><span>Concepto</span><span>Cant.</span><span>Costo unit.</span><span></span></div>
+      <div id="mats"></div>
+      <button class="btn" id="addMat" type="button">Agregar material</button>
+      <p class="hint">Incluye tela con margen de merma (usa de 5% a 10% más de lo calculado), forro, cierres, botones, hilo, entretela y empaque.</p>
+    </section>
+
+    <section class="card">
+      <h2>Gastos y ganancia</h2>
+      <div class="grid3">
+        <div><label for="ind">Gastos indirectos (%)</label><input id="ind" type="number" min="0" step="1" value="10"></div>
+        <div><label for="mar">Utilidad deseada (%)</label><input id="mar" type="number" min="0" max="90" step="1" value="25"></div>
+        <div><label for="rush">Recargo por urgencia (%)</label><input id="rush" type="number" min="0" step="5" value="0"></div>
+      </div>
+      <p class="hint">Indirectos: luz, renta, desgaste de máquinas, agujas, herramientas y tiempo de atención. La utilidad se calcula sobre el precio final.</p>
+      <label class="check"><input id="iva" type="checkbox"> Mostrar precio con IVA (16%)</label>
+      <label class="check"><input id="round" type="checkbox" checked> Redondear hacia arriba a múltiplos de $10</label>
+    </section>
+  </div>
+
+  <aside class="result">
+    <div class="panel" aria-live="polite">
+      <div class="lbl">Precio sugerido al cliente</div>
+      <div class="price" id="price">$0</div>
+      <div class="sub" id="ivaLine"></div>
+      <div class="stack" id="stack" role="img" aria-label="Composición del precio"></div>
+      <ul class="rows" id="rows"></ul>
+      <div class="kpis">
+        <div class="kpi"><span class="sub">Anticipo sugerido (50%)</span><b id="adv">$0</b></div>
+        <div class="kpi"><span class="sub">Precio mínimo (sin utilidad)</span><b id="floor">$0</b></div>
+        <div class="kpi"><span class="sub">Ingreso por hora trabajada</span><b id="hourly">$0</b></div>
+        <div class="kpi"><span class="sub">Horas totales</span><b id="hours">0</b></div>
+      </div>
+      <div class="warn" id="warn"></div>
+    </div>
+    <p class="hint" style="margin-top:12px">Consejo: compara el resultado con lo que cobra el mercado local por una prenda similar. Si queda muy por encima, revisa horas y complejidad; si queda por debajo, no bajes la utilidad, ajusta materiales o tiempos.</p>
+  </aside>
+</main>
+
+<div class="mobilebar"><span>Precio sugerido</span><b id="priceM">$0</b></div>
+
+<script>
+(function () {
+  var PRESETS = [
+    { n: "Arreglo o ajuste", h: 1 },
+    { n: "Falda", h: 4 },
+    { n: "Blusa o camisa", h: 5 },
+    { n: "Pantalón", h: 6 },
+    { n: "Vestido casual", h: 7 },
+    { n: "Uniforme", h: 4 },
+    { n: "Saco o blazer", h: 16 },
+    { n: "Vestido de fiesta", h: 16 },
+    { n: "Traje de 2 piezas", h: 26 },
+    { n: "Vestido de novia", h: 60 },
+    { n: "Personalizada", h: null }
+  ];
+  var split = [0.2, 0.55, 0.25];
+  var mats = [
+    { c: "Tela principal (m)", q: 2, p: 150 },
+    { c: "Forro (m)", q: 0, p: 60 },
+    { c: "Cierre", q: 1, p: 25 },
+    { c: "Hilo, botones y entretela", q: 1, p: 40 }
+  ];
+  var $ = function (id) { return document.getElementById(id); };
+  var fmt = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+  var money = function (v) { return fmt.format(isFinite(v) ? v : 0); };
+  var num = function (id) { var v = parseFloat($(id).value); return isFinite(v) && v >= 0 ? v : 0; };
+
+  function load() {
+    try {
+      var s = JSON.parse(localStorage.getItem("modista-cfg") || "null");
+      if (s) { ["rate", "ind", "mar"].forEach(function (k) { if (s[k] != null) $(k).value = s[k]; }); }
+    } catch (e) {}
+  }
+  function save() {
+    try { localStorage.setItem("modista-cfg", JSON.stringify({ rate: $("rate").value, ind: $("ind").value, mar: $("mar").value })); } catch (e) {}
+  }
+
+  function buildPresets() {
+    $("preset").innerHTML = PRESETS.map(function (p, i) {
+      return '<option value="' + i + '">' + p.n + (p.h ? " (aprox. " + p.h + " h)" : "") + "</option>";
+    }).join("");
+    $("preset").value = "4";
+    applyPreset();
+  }
+  function applyPreset() {
+    var p = PRESETS[+$("preset").value];
+    if (!p.h) return;
+    ["h1", "h2", "h3"].forEach(function (id, i) {
+      $(id).value = (Math.round(p.h * split[i] * 4) / 4).toString();
+    });
+  }
+
+  function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+  function renderMats() {
+    $("mats").innerHTML = mats.map(function (m, i) {
+      return '<div class="mat-row">' +
+        '<input aria-label="Concepto" data-i="' + i + '" data-k="c" value="' + esc(m.c) + '">' +
+        '<input aria-label="Cantidad" data-i="' + i + '" data-k="q" type="number" min="0" step="0.25" value="' + m.q + '">' +
+        '<input aria-label="Costo unitario" data-i="' + i + '" data-k="p" type="number" min="0" step="5" value="' + m.p + '">' +
+        '<button type="button" aria-label="Quitar material" data-del="' + i + '">&times;</button></div>';
+    }).join("");
+  }
+
+  function calc() {
+    var hours = num("h1") + num("h2") + num("h3");
+    var cx = parseFloat($("complex").value) || 1;
+    var labor = hours * num("rate") * cx + num("fit");
+    var material = mats.reduce(function (a, m) { return a + (parseFloat(m.q) || 0) * (parseFloat(m.p) || 0); }, 0);
+    var indirect = (labor + material) * num("ind") / 100;
+    var cost = labor + material + indirect;
+    var mar = Math.min(num("mar"), 90) / 100;
+    var base = cost / (1 - mar);
+    var rush = base * num("rush") / 100;
+    var price = base + rush;
+    if ($("round").checked) price = Math.ceil(price / 10) * 10;
+    var profit = price - cost;
+    var withIva = price * 1.16;
+
+    $("price").textContent = money(price);
+    $("priceM").textContent = money(price);
+    $("ivaLine").textContent = $("iva").checked ? "Con IVA (16%): " + money(withIva) : "";
+    $("adv").textContent = money((($("iva").checked ? withIva : price)) * 0.5);
+    $("floor").textContent = money(cost);
+    $("hours").textContent = (Math.round(hours * 100) / 100) + " h";
+    $("hourly").textContent = hours > 0 ? money((labor + profit) / hours) : "$0";
+
+    var parts = [
+      ["Materiales", material, "var(--bar-mat)"],
+      ["Mano de obra", labor, "var(--bar-lab)"],
+      ["Gastos indirectos", indirect, "var(--bar-ind)"],
+      ["Utilidad y urgencia", Math.max(profit, 0), "var(--bar-pro)"]
+    ];
+    var total = parts.reduce(function (a, p) { return a + p[1]; }, 0) || 1;
+    $("stack").innerHTML = parts.map(function (p) { return '<span style="width:' + (p[1] / total * 100) + "%;background:" + p[2] + '"></span>'; }).join("");
+    $("rows").innerHTML = parts.map(function (p) {
+      return '<li><span><i class="dot" style="background:' + p[2] + '"></i>' + p[0] + "</span><span>" + money(p[1]) + "</span></li>";
+    }).join("") + '<li class="tot"><span>Total</span><span>' + money(price) + "</span></li>";
+
+    var w = $("warn"), msgs = [];
+    if (hours === 0) msgs.push("Captura las horas de trabajo para un cálculo realista.");
+    if (num("rate") < 50 && hours > 0) msgs.push("Tu tarifa por hora es baja. Verifica que cubra tu tiempo y tu experiencia.");
+    if (num("mar") < 15) msgs.push("Una utilidad menor a 15% deja poco margen para imprevistos y reposición de equipo.");
+    if (material === 0) msgs.push("No hay materiales capturados.");
+    w.textContent = msgs.join(" ");
+    w.className = "warn" + (msgs.length ? " on" : "");
+  }
+
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.i != null) {
+      var m = mats[+t.dataset.i], k = t.dataset.k;
+      m[k] = k === "c" ? t.value : t.value;
+    }
+    if (t.id === "h1" || t.id === "h2" || t.id === "h3") $("preset").value = String(PRESETS.length - 1);
+    save(); calc();
+  });
+  document.addEventListener("click", function (e) {
+    var d = e.target.dataset && e.target.dataset.del;
+    if (d != null) { mats.splice(+d, 1); renderMats(); calc(); }
+  });
+  $("addMat").addEventListener("click", function () { mats.push({ c: "", q: 1, p: 0 }); renderMats(); calc(); });
+  $("preset").addEventListener("change", function () { applyPreset(); calc(); });
+  $("complex").addEventListener("change", calc);
+  $("iva").addEventListener("change", calc);
+  $("round").addEventListener("change", calc);
+
+  load(); buildPresets(); renderMats(); calc();
+})();
+</script>
+</body>
+</html>
